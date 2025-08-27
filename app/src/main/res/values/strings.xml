@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Elements feed display</string>
+    <string name="command">Command</string>
+    <string name="send">Send</string>
+</resources>
