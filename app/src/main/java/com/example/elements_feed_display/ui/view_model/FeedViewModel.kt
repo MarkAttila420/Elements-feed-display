@@ -5,17 +5,14 @@ import com.example.elements_feed_display.data.model.ListItem
 import com.example.elements_feed_display.data.repository.FeedRepository
 import com.example.elements_feed_display.domain.command.Command
 import com.example.elements_feed_display.domain.command.CommandHandler
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
 
 class FeedViewModel(
     private val repository: FeedRepository = FeedRepository()
 ): ViewModel(){
     val feeds: StateFlow<List<ListItem>> = repository.feeds
+    val errors: SharedFlow<Throwable> = repository.errors
 
     private val commandHandler = CommandHandler(repository)
 

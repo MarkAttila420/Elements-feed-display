@@ -23,6 +23,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
     private val repository = FeedRepository()
@@ -73,6 +74,17 @@ class MainActivity : AppCompatActivity() {
             viewModel.feeds.collectLatest { feeds ->
                 adapter.updateItems(feeds)
                 recyclerView.scrollToPosition(feeds.size - 1)
+            }
+        }
+        uiScope.launch {
+            viewModel.errors.collect { throwable ->
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        this@MainActivity,
+                        throwable.message ?: "Unknown error",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
         }
     }

@@ -7,7 +7,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -19,6 +21,9 @@ class FeedRepository(
     val feeds: StateFlow<List<ListItem>> get() = _feeds
     private val pendingFeeds = mutableListOf<ListItem>()
 
+    private val _errors = MutableSharedFlow<Throwable>()
+    val errors: SharedFlow<Throwable> = _errors
+
     private var counter = 0
     private var pollingJob: Job? = null
 
@@ -26,19 +31,33 @@ class FeedRepository(
 
     fun start(){
         if(pollingJob?.isActive == true) return
-
         addCommandToList(Command.Start)
 
         pollingJob = CoroutineScope(Dispatchers.IO).launch {
             while (isActive){
-                fetchNext()
-                delay(5000)
+                var success = false
+                var attempts = 0
+
+                while (!success && attempts <3){
+                    try {
+                        fetchNext()
+                        delay(5000)
+                        success=true
+                    }catch (exception: Exception){
+                        attempts++
+                        if(attempts>=3){
+                            _errors.emit(exception)
+                            stop(false)
+                        }
+                        delay(1000)
+                    }
+                }
             }
         }
     }
 
-    fun stop() {
-        addCommandToList(Command.Stop)
+    fun stop(addCommandToList: Boolean = true) {
+        if(addCommandToList) addCommandToList(Command.Stop)
         pollingJob?.cancel()
         pollingJob = null
         counter = 0
@@ -75,7 +94,7 @@ class FeedRepository(
                 _feeds.value = currentFeeds
             }
         }.onFailure { err ->
-            println("Error fetching feed: ${err.message}")
+            throw err
         }
     }
 
